@@ -1,4 +1,3 @@
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/library/d/1YZ5A-9yfvyeoXOBj6dqSeiqBnjpMNVoOiGsUMYB9DBF_0Qm1KdNnD18e/1";
 import { useState, useMemo, useRef, useEffect } from "react";
 
 // ── html2canvas loader ───────────────────────────────────────────────────────
@@ -53,19 +52,30 @@ const EMPTY = {
 const fmt    = v => v ? "฿" + Number(v).toLocaleString("th-TH") : "–";
 const fmtDate = r => r.day && r.month && r.year
   ? `${r.day} ${THAI_MONTHS_SHORT[+r.month - 1]} ${r.year}` : "–";
+  
+// ตัวอย่างที่พี่ควรมีใน App.jsx
+const handleSubmit = async (formData) => {
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyDqh1VE1be7-iVyvQ7r_cxsrrULyV4FHOFUZEiQKMyXdpFai3i6kvyvgn6ZgG0Ya0z/exec";
 
-  const saveToGoogleSheet = async (record) => {
-  try {
-    await fetch(GOOGLE_SHEET_URL, {
-      method: "POST",
-      mode: "no-cors", // เพื่อป้องกันปัญหาความปลอดภัยของเบราว์เซอร์
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(record)
-    });
-    alert("ซิงค์ข้อมูลลง Google Sheets สำเร็จ!");
-  } catch (err) {
-    console.error("ซิงค์ไม่สำเร็จ:", err);
-  }
+  const dataToSend = {
+    date: formData.date,     // ต้องชื่อ 'date'
+    name: formData.name,     // ต้องชื่อ 'name'
+    contact: formData.phone,  // ฝั่งซ้ายต้องเป็น 'contact' (ตามที่ตั้งใน Script)
+    eyeR: formData.eyeR,     // ต้องชื่อ 'eyeR'
+    eyeL: formData.eyeL,     // ต้องชื่อ 'eyeL'
+    lens: formData.lens,     // ต้องชื่อ 'lens'
+    frame: formData.frame,   // ต้องชื่อ 'frame'
+    price: formData.price    // ต้องชื่อ 'price'
+  };
+
+  await fetch(SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors", // สำคัญมาก: ห้ามลืมบรรทัดนี้
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(dataToSend),
+  });
 };
 
 // ตอนที่พี่บันทึกลงในเครื่องเสร็จ ให้เรียกใช้แบบนี้:
@@ -435,16 +445,53 @@ export default function App() {
   const total = records.reduce((a, r) => a + (+r.price || 0), 0);
   const ch = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
+// ── ส่วนส่งข้อมูลไป Google Sheets ──────────────────────────────────────────
+  const saveToGoogleSheet = async (formData) => {
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyDqh1VE1be7-iVyvQ7r_cxsrrULyV4FHOFUZEiQKMyXdpFai3i6kvyvgn6ZgG0Ya0z/exec";
+
+    // จัดระเบียบข้อมูลให้ตรงกับหัวตาราง Google Sheets
+    const dataToSend = {
+      date: `${formData.day}/${formData.month}/${formData.year}`, // รวมวันที่เป็น 1 ช่อง
+      name: formData.name,
+      contact: formData.phone + (formData.lineId ? ` (Line: ${formData.lineId})` : ""),
+      eyeR: `SPH:${formData.rightSphere} CYL:${formData.rightCylinder} AX:${formData.rightAxis}`,
+      eyeL: `SPH:${formData.leftSphere} CYL:${formData.leftCylinder} AX:${formData.leftAxis}`,
+      lens: formData.lensType,
+      frame: formData.frame,
+      price: formData.price
+    };
+
+    try {
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dataToSend),
+      });
+      console.log("✅ ซิงค์ Google Sheets สำเร็จ");
+    } catch (error) {
+      console.error("❌ ซิงค์ล้มเหลว:", error);
+    }
+  };
+
+  // ── ฟังก์ชันกดปุ่มบันทึก (แก้ไขใหม่) ──────────────────────────────────────────
   const submit = e => {
     e.preventDefault();
     if (!form.name.trim()) return;
+
     if (editId !== null) {
       setRecords(rs => rs.map(r => r.id === editId ? { ...form, id: editId } : r));
       setEditId(null);
     } else {
-      setRecords(rs => [{ ...form, id: nid.current++ }, ...rs]);
+      const newRecord = { ...form, id: nid.current++ };
+      setRecords(rs => [newRecord, ...rs]);
+      
+      // 🔥 เพิ่มบรรทัดนี้: เพื่อส่งข้อมูลไป Google Sheets ทันทีที่กดบันทึก
+      saveToGoogleSheet(newRecord); 
     }
-    setForm(EMPTY); setSaved(true);
+
+    setForm(EMPTY); 
+    setSaved(true);
     setTimeout(() => setSaved(false), 2500);
     setTab("log");
   };
