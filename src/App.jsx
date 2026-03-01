@@ -1,3 +1,5 @@
+import { supabase } from './supabaseClient';
+// (อันอื่นๆ ที่คุณมีอยู่แล้วอย่าง useState, useEffect ไม่ต้องลบนะ)
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
 
@@ -94,20 +96,73 @@ const CSS = `
   --r:14px;--r-sm:9px;
 }
 body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);}
-.app{min-height:100vh;}
+.app {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
 
 .hdr{background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 50%,#2563eb 100%);position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(15,32,87,0.3);}
-.hdr-inner{max-width:1080px;margin:0 auto;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.hdr-inner {
+  max-width: 100% !important; /* เปลี่ยนจาก 1080px เป็น 100% */
+  width: 100%;
+  margin: 0;
+  padding: 16px 40px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+}
 .hdr-brand{display:flex;align-items:center;gap:12px;}
 .hdr-icon{width:44px;height:44px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;backdrop-filter:blur(10px);}
 .hdr-title{font-family:'K2D',sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:0.04em;line-height:1;}
 .hdr-sub{font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px;letter-spacing:0.1em;}
-.hdr-stats{display:flex;gap:10px;}
-.hdr-stat{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:8px 16px;text-align:center;backdrop-filter:blur(10px);}
-.hdr-stat-lbl{font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:0.08em;margin-bottom:2px;}
-.hdr-stat-val{font-size:18px;font-weight:800;color:#fff;line-height:1;}
+.hdr-stats {
+  display: flex;
+  gap: 20px;
+  margin-left: auto; /* <--- เพิ่มบรรทัดนี้ครับ เพื่อดันไปทางขวาสุด */
+}
+.hdr-stat {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px; /* เพิ่มความโค้งให้ดูทันสมัย */
+  padding: 12px 24px;   /* ปรับสัดส่วนให้ดูเพรียวขึ้นแต่กว้างออก */
+  text-align: center;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); /* เพิ่มเงาให้ดูลอยออกมา */
+  min-width: 140px;    /* กำหนดความกว้างขั้นต่ำ */
+  transition: transform 0.2s ease;
+}
 
-.wrap{max-width:1080px;margin:0 auto;padding:24px 20px 60px;}
+.hdr-stat:hover {
+  transform: translateY(-2px); /* เวลาเอาเมาส์ชี้จะลอยขึ้นนิดนึง */
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.hdr-stat-lbl {
+  font-size: 14px; /* ลดขนาดชื่อหัวข้อลงนิดนึงเพื่อเน้นตัวเลข */
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.hdr-stat-val {
+  font-size: 36px;  /* ขยายตัวเลขให้ใหญ่สะใจ */
+  font-weight: 900; /* ใช้ความหนาสูงสุด */
+  color: #ffffff;
+  line-height: 1.1;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.3); /* เพิ่มรัศมีแสงเรืองให้ตัวเลข */
+  font-family: 'K2D', sans-serif; /* ถ้ามี Font นี้จะดูพรีเมียมมาก */
+}
+.wrap { 
+  max-width: 100% !important; 
+  width: 100%; 
+  margin: 0; 
+  padding: 24px 40px 60px; 
+  box-sizing: border-box; 
+}
 
 .tabs{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;gap:3px;margin-bottom:22px;box-shadow:var(--shadow);}
 .tab{padding:9px 22px;border-radius:9px;border:none;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.18s;white-space:nowrap;color:var(--text2);background:transparent;}
@@ -221,80 +276,336 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);}
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Bill Card Component
+// BillCard Component — Master Optic Premium Style
+// วางไว้ก่อน BillModal ใน App.jsx
 // ─────────────────────────────────────────────────────────────────────────────
+
 function BillCard({ r }) {
+  const dateStr = r.day && r.month && r.year
+    ? `${r.day} ${["","ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."][+r.month]} ${r.year}`
+    : "–";
+
+  const priceFormatted = r.price
+    ? "฿" + Number(r.price).toLocaleString("th-TH")
+    : "–";
+
   return (
-    <div id="bill-card" style={{ width:400, background:"#fff", fontFamily:"'Sarabun',sans-serif", color:"#1e293b", boxSizing:"border-box" }}>
-      <div style={{ background:"linear-gradient(135deg,#1e3a8a,#2563eb)", padding:"28px 28px 22px", position:"relative", overflow:"hidden" }}>
-        <div style={{ position:"absolute", top:-30, right:-30, width:100, height:100, borderRadius:"50%", background:"rgba(255,255,255,0.06)" }}/>
-        <div style={{ position:"absolute", bottom:-20, left:20, width:70, height:70, borderRadius:"50%", background:"rgba(255,255,255,0.04)" }}/>
-        <div style={{ position:"relative", zIndex:1, textAlign:"center" }}>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(255,255,255,0.12)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:24, padding:"5px 18px", marginBottom:10 }}>
-            <span style={{ fontSize:15 }}>👓</span>
-            <span style={{ fontSize:13, fontWeight:800, color:"#fff", letterSpacing:"0.14em", fontFamily:"'K2D',sans-serif" }}>MASTER OPTIC</span>
+    <div style={{
+      width: 420,
+      fontFamily: "'Sarabun', sans-serif",
+      background: "#ffffff",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+
+      {/* ═══════════════════════════════════════════
+          HEADER — Gradient พร้อม decorative circles
+      ═══════════════════════════════════════════ */}
+      <div style={{
+        background: "linear-gradient(135deg, #0f2057 0%, #1d4ed8 55%, #3b82f6 100%)",
+        padding: "28px 28px 36px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* Decorative circles */}
+        <div style={{
+          position: "absolute", top: -30, right: -30,
+          width: 130, height: 130,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.06)",
+          border: "1px solid rgba(255,255,255,0.1)",
+        }} />
+        <div style={{
+          position: "absolute", bottom: -20, right: 60,
+          width: 80, height: 80,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }} />
+        <div style={{
+          position: "absolute", top: 10, right: 80,
+          width: 40, height: 40,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.08)",
+        }} />
+
+        {/* Logo row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18, position: "relative" }}>
+          <div style={{
+            width: 46, height: 46,
+            background: "rgba(255,255,255,0.15)",
+            border: "1.5px solid rgba(255,255,255,0.3)",
+            borderRadius: 12,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 22,
+            backdropFilter: "blur(8px)",
+          }}>👓</div>
+          <div>
+            <div style={{
+              fontSize: 20, fontWeight: 900, color: "#ffffff",
+              letterSpacing: "0.12em",
+              fontFamily: "'K2D', 'Sarabun', sans-serif",
+              lineHeight: 1,
+            }}>MASTER OPTIC</div>
+            <div style={{
+              fontSize: 10, color: "rgba(255,255,255,0.6)",
+              letterSpacing: "0.2em", marginTop: 3,
+              textTransform: "uppercase",
+            }}>ใบเสร็จรับเงิน · Receipt</div>
           </div>
-          <div style={{ fontSize:20, fontWeight:800, color:"#fff", marginBottom:4 }}>ใบบันทึกข้อมูลลูกค้า</div>
-          <div style={{ fontSize:11, color:"rgba(255,255,255,0.65)", letterSpacing:"0.06em" }}>Customer Record Card</div>
+        </div>
+
+        {/* Customer name big */}
+        <div style={{ position: "relative" }}>
+          <div style={{
+            fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.55)",
+            letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 5,
+          }}>ชื่อลูกค้า</div>
+          <div style={{
+            fontSize: 19, fontWeight: 800, color: "#ffffff",
+            lineHeight: 1.25, marginBottom: 8,
+          }}>{r.name || "–"}</div>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            {r.phone && (
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <span style={{ fontSize: 12 }}>📞</span>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>{r.phone}</span>
+              </div>
+            )}
+            {r.lineId && (
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <span style={{ fontSize: 12 }}>💬</span>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>{r.lineId}</span>
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ fontSize: 12 }}>📅</span>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>{dateStr}</span>
+            </div>
+          </div>
         </div>
       </div>
-      <div style={{ padding:"20px 24px 24px" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16, padding:"8px 12px", background:"#f8faff", borderRadius:8, border:"1px solid #e2e8f8" }}>
-          <span style={{ fontSize:13, color:"#475569" }}>📅 {fmtDate(r)}</span>
-          <span style={{ fontSize:12, color:"#94a3b8", fontFamily:"monospace" }}>#{String(r.id).padStart(5,"0")}</span>
-        </div>
-        <div style={{ background:"linear-gradient(135deg,#eff6ff,#e0f2fe)", border:"1.5px solid #bfdbfe", borderRadius:12, padding:"14px 16px", marginBottom:14 }}>
-          <div style={{ fontSize:10, fontWeight:700, color:"#3b82f6", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:8 }}>👤 ข้อมูลผู้ใช้บริการ</div>
-          <div style={{ fontSize:18, fontWeight:800, color:"#0f2057", marginBottom:6 }}>{r.name}</div>
-          <div style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
-            <span style={{ fontSize:13, color:"#475569" }}>📞 {r.phone||"–"}</span>
-            {r.lineId && <span style={{ fontSize:13, color:"#0891b2" }}>💬 {r.lineId}</span>}
+
+      {/* Wave divider */}
+      <div style={{ background: "linear-gradient(135deg, #0f2057 0%, #1d4ed8 55%, #3b82f6 100%)", lineHeight: 0 }}>
+        <svg viewBox="0 0 420 28" style={{ display: "block", width: "100%" }}>
+          <path d="M0,28 L0,8 Q105,28 210,14 Q315,0 420,18 L420,28 Z" fill="#ffffff" />
+        </svg>
+      </div>
+
+      {/* ═══════════════════════════════════════════
+          BODY
+      ═══════════════════════════════════════════ */}
+      <div style={{ padding: "4px 28px 28px" }}>
+
+        {/* ── ค่าสายตา ── */}
+        <div style={{
+          background: "linear-gradient(135deg, #eff6ff, #f0fdf4)",
+          border: "1.5px solid #bfdbfe",
+          borderRadius: 14,
+          padding: "16px 18px",
+          marginBottom: 16,
+        }}>
+          <div style={{
+            fontSize: 10, fontWeight: 800, color: "#1d4ed8",
+            letterSpacing: "0.15em", textTransform: "uppercase",
+            marginBottom: 12, display: "flex", alignItems: "center", gap: 6,
+          }}>
+            <span style={{
+              display: "inline-block", width: 18, height: 18,
+              background: "#2563eb", borderRadius: 5,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 10,
+            }}>👁</span>
+            ค่าสายตา
           </div>
-        </div>
-        <div style={{ background:"#f8faff", border:"1.5px solid #e2e8f8", borderRadius:12, padding:"14px 16px", marginBottom:14 }}>
-          <div style={{ fontSize:10, fontWeight:700, color:"#475569", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:12 }}>🔍 ค่าสายตา (Prescription)</div>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
-            <thead>
-              <tr>
-                <th style={{ width:36, textAlign:"center", color:"#94a3b8", fontSize:10, paddingBottom:6, fontWeight:700 }}></th>
-                {["Sphere","Cylinder","Axis"].map(h => <th key={h} style={{ textAlign:"center", color:"#64748b", fontSize:10, fontWeight:700, letterSpacing:"0.05em", paddingBottom:6 }}>{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { eye:"R", bg:"#eff6ff", color:"#1d4ed8", border:"#bfdbfe", vals:[r.rightSphere,r.rightCylinder,r.rightAxis] },
-                { eye:"L", bg:"#ecfdf5", color:"#047857", border:"#a7f3d0", vals:[r.leftSphere,r.leftCylinder,r.leftAxis] },
-              ].map(row => (
-                <tr key={row.eye}>
-                  <td style={{ padding:"5px 0" }}>
-                    <div style={{ background:row.bg, color:row.color, border:`1.5px solid ${row.border}`, borderRadius:7, padding:"2px 0", fontWeight:800, fontSize:13, textAlign:"center" }}>{row.eye}</div>
-                  </td>
-                  {row.vals.map((v,i) => (
-                    <td key={i} style={{ textAlign:"center", padding:"5px 4px", color:v?"#1e293b":"#cbd5e1", fontWeight:v?700:400, fontSize:14 }}>{v||"–"}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
-          {[{icon:"🔬",label:"ชนิดเลนส์",val:r.lensType},{icon:"👓",label:"รหัสกรอบ",val:r.frame,mono:true}].map(({ icon,label,val,mono }) => (
-            <div key={label} style={{ background:"#f8faff", border:"1px solid #e2e8f8", borderRadius:10, padding:"10px 12px" }}>
-              <div style={{ fontSize:10, color:"#94a3b8", fontWeight:700, marginBottom:4 }}>{icon} {label}</div>
-              <div style={{ fontSize:13, fontWeight:700, color:"#1e293b", fontFamily:mono?"monospace":"inherit", wordBreak:"break-all" }}>{val||"–"}</div>
+
+          {/* Header row */}
+          <div style={{
+            display: "grid", gridTemplateColumns: "70px 1fr 1fr 1fr",
+            gap: 6, marginBottom: 8,
+          }}>
+            <div />
+            {["SPH","CYL","AXIS"].map(h => (
+              <div key={h} style={{
+                textAlign: "center", fontSize: 10, fontWeight: 800,
+                color: "#475569", letterSpacing: "0.1em",
+                background: "rgba(37,99,235,0.08)",
+                borderRadius: 6, padding: "4px 0",
+              }}>{h}</div>
+            ))}
+          </div>
+
+          {/* Right eye */}
+          <div style={{
+            display: "grid", gridTemplateColumns: "70px 1fr 1fr 1fr",
+            gap: 6, marginBottom: 6,
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 5,
+            }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: 6,
+                background: "linear-gradient(135deg,#1d4ed8,#3b82f6)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 9, color: "#fff", fontWeight: 800,
+              }}>R</div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#1d4ed8" }}>ขวา</span>
             </div>
-          ))}
-        </div>
-        <div style={{ background:"linear-gradient(135deg,#1e3a8a,#2563eb)", borderRadius:12, padding:"16px 20px", display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, boxShadow:"0 4px 16px rgba(37,99,235,0.25)" }}>
-          <div>
-            <div style={{ fontSize:12, color:"rgba(255,255,255,0.7)", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:1 }}>ราคารวมทั้งสิ้น</div>
-            <div style={{ fontSize:10, color:"rgba(255,255,255,0.5)" }}>Total Amount (THB)</div>
+            {[r.rightSphere, r.rightCylinder, r.rightAxis].map((val, i) => (
+              <div key={i} style={{
+                textAlign: "center", fontSize: 13, fontWeight: 700,
+                color: "#1e293b", background: "#fff",
+                borderRadius: 8, padding: "6px 4px",
+                border: "1px solid #e2e8f8",
+              }}>{val || "–"}</div>
+            ))}
           </div>
-          <div style={{ fontSize:28, fontWeight:800, color:"#fff" }}>{r.price ? "฿"+Number(r.price).toLocaleString("th-TH") : "–"}</div>
+
+          {/* Left eye */}
+          <div style={{
+            display: "grid", gridTemplateColumns: "70px 1fr 1fr 1fr",
+            gap: 6,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: 6,
+                background: "linear-gradient(135deg,#047857,#10b981)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 9, color: "#fff", fontWeight: 800,
+              }}>L</div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#047857" }}>ซ้าย</span>
+            </div>
+            {[r.leftSphere, r.leftCylinder, r.leftAxis].map((val, i) => (
+              <div key={i} style={{
+                textAlign: "center", fontSize: 13, fontWeight: 700,
+                color: "#1e293b", background: "#fff",
+                borderRadius: 8, padding: "6px 4px",
+                border: "1px solid #e2e8f8",
+              }}>{val || "–"}</div>
+            ))}
+          </div>
         </div>
-        <div style={{ borderTop:"1px solid #e2e8f8", paddingTop:14, textAlign:"center" }}>
-          <div style={{ fontSize:12, color:"#94a3b8", marginBottom:3 }}>✨ ขอบคุณที่ใช้บริการ Master Optic</div>
-          <div style={{ fontSize:10, color:"#cbd5e1", letterSpacing:"0.1em" }}>masteroptic.com</div>
+
+        {/* ── เลนส์ & กรอบ ── */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "1fr 1fr",
+          gap: 10, marginBottom: 16,
+        }}>
+          {/* เลนส์ */}
+          <div style={{
+            background: "#f8faff",
+            border: "1.5px solid #dbeafe",
+            borderRadius: 12,
+            padding: "12px 14px",
+          }}>
+            <div style={{
+              fontSize: 9, fontWeight: 800, color: "#64748b",
+              letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6,
+            }}>🔍 เลนส์</div>
+            <div style={{
+              fontSize: 13, fontWeight: 700, color: "#1e293b", lineHeight: 1.3,
+            }}>{r.lensType || "–"}</div>
+          </div>
+
+          {/* กรอบ */}
+          <div style={{
+            background: "#f8faff",
+            border: "1.5px solid #dbeafe",
+            borderRadius: 12,
+            padding: "12px 14px",
+          }}>
+            <div style={{
+              fontSize: 9, fontWeight: 800, color: "#64748b",
+              letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6,
+            }}>🖼 กรอบ</div>
+            <div style={{
+              fontSize: 13, fontWeight: 700, color: "#1e293b", lineHeight: 1.3,
+            }}>{r.frame || "–"}</div>
+          </div>
+        </div>
+
+        {/* ── ราคา ── */}
+        <div style={{
+          background: "linear-gradient(135deg, #0f2057 0%, #1d4ed8 60%, #3b82f6 100%)",
+          borderRadius: 16,
+          padding: "20px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          position: "relative",
+          overflow: "hidden",
+          marginBottom: 18,
+        }}>
+          {/* deco circle */}
+          <div style={{
+            position: "absolute", right: -20, top: -20,
+            width: 90, height: 90, borderRadius: "50%",
+            background: "rgba(255,255,255,0.07)",
+          }} />
+          <div style={{
+            position: "absolute", right: 30, bottom: -15,
+            width: 50, height: 50, borderRadius: "50%",
+            background: "rgba(255,255,255,0.05)",
+          }} />
+          <div style={{ position: "relative" }}>
+            <div style={{
+              fontSize: 10, color: "rgba(255,255,255,0.6)",
+              letterSpacing: "0.12em", textTransform: "uppercase",
+              marginBottom: 4,
+            }}>ยอดรวมทั้งสิ้น</div>
+            <div style={{
+              fontSize: 32, fontWeight: 900, color: "#ffffff",
+              fontFamily: "'K2D', 'Sarabun', sans-serif",
+              letterSpacing: "0.02em",
+              lineHeight: 1,
+            }}>{priceFormatted}</div>
+          </div>
+          <div style={{
+            background: "rgba(255,255,255,0.12)",
+            border: "1px solid rgba(255,255,255,0.2)",
+            borderRadius: 10, padding: "8px 14px",
+            fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.9)",
+            backdropFilter: "blur(8px)",
+            position: "relative",
+          }}>
+
+          </div>
+        </div>
+
+        {/* ── Divider dashed ── */}
+        <div style={{
+          borderTop: "2px dashed #e2e8f8",
+          margin: "0 0 16px",
+          position: "relative",
+        }}>
+          {/* scissors icon */}
+          <div style={{
+            position: "absolute", top: -10, left: "50%",
+            transform: "translateX(-50%)",
+            background: "#fff", padding: "0 8px",
+            fontSize: 14, color: "#94a3b8",
+          }}>✂</div>
+        </div>
+
+        {/* ── Footer ── */}
+        <div style={{ textAlign: "center" }}>
+          <div style={{
+            fontSize: 13, fontWeight: 700, color: "#1d4ed8", marginBottom: 4,
+          }}>ขอบคุณที่ใช้บริการ 🙏</div>
+          <div style={{
+            fontSize: 10, color: "#94a3b8", letterSpacing: "0.08em",
+          }}>MASTER OPTIC · กรุณาเก็บใบเสร็จไว้เป็นหลักฐาน</div>
+          <div style={{
+            marginTop: 10,
+            display: "inline-flex", alignItems: "center", gap: 6,
+            background: "#eff6ff", border: "1px solid #bfdbfe",
+            borderRadius: 20, padding: "5px 14px",
+          }}>
+            <span style={{ fontSize: 10, color: "#2563eb", fontWeight: 700, letterSpacing: "0.08em" }}>
+              ✦ MASTER OPTIC ✦
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -302,11 +613,16 @@ function BillCard({ r }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Bill Modal
-// ─────────────────────────────────────────────────────────────────────────────
-function BillModal({ r, onClose }) {
+// Bill Card Component
+function BillModal({ r, onClose, records = [] }) {
   const h2cReady = useHtml2Canvas();
   const [saving, setSaving] = useState(false);
+
+  // คำนวณเลขที่บิล
+  const idx = records.findIndex(x => x.id === r.id);
+  const billNo = idx !== -1 
+    ? `#M${String(records.length - idx).padStart(4, '0')}` 
+    : "#M0000";
 
   const handleDownload = () => {
     if (!h2cReady) return;
@@ -325,9 +641,15 @@ function BillModal({ r, onClose }) {
   return (
     <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="slide-up" style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12 }}>
-        <div style={{ boxShadow:"0 20px 60px rgba(15,32,87,0.4)", borderRadius:16, overflow:"hidden" }}>
+        
+        <div id="bill-card" style={{ boxShadow:"0 20px 60px rgba(15,32,87,0.4)", borderRadius:16, overflow:"hidden", background:"#fff" }}>
+          {/* เลขที่บิลที่จะติดไปในรูปภาพ */}
+          <div style={{ textAlign: "right", padding: "12px 16px 0", fontSize: "14px", fontWeight: "800", color: "#2563eb", fontFamily: "monospace" }}>
+            เลขที่: {billNo}
+          </div>
           <BillCard r={r} />
         </div>
+
         <div style={{ display:"flex", gap:10, width:400, maxWidth:"100%" }}>
           <button onClick={onClose} style={{ flex:1, padding:11, borderRadius:10, background:"rgba(255,255,255,0.14)", border:"1px solid rgba(255,255,255,0.25)", color:"#fff", cursor:"pointer", fontSize:13, fontWeight:700, fontFamily:"Sarabun,sans-serif" }}>
             ✕ ปิด
@@ -337,6 +659,7 @@ function BillModal({ r, onClose }) {
           </button>
         </div>
       </div>
+      {/* ตรงนี้ห้ามมีอะไรอีก ปิด div แล้วจบฟังก์ชันเลย */}
     </div>
   );
 }
@@ -908,75 +1231,142 @@ function LogTab({ records, onEdit, onDelete, onViewBill }) {
   );
 }
 
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // App Root
 // ─────────────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [records, setRecords] = useState(INIT);
-  const [tab,     setTab]     = useState("form");
-  const [billRec, setBillRec] = useState(null);
-  const [editRec, setEditRec] = useState(null);
-  const nid = useRef(200);
+// เปลี่ยนจาก INIT เป็นค่าว่าง [] เพื่อรอโหลดจาก Cloud
+const [records, setRecords] = useState([]); 
+const [monthlyData, setMonthlyData] = useState(
+  THAI_MONTHS.map(m => ({ month: m, revenue: 0 }))
+);
+const [selYear, setSelYear] = useState(String(now.getFullYear() + 543));
+// ฟังก์ชันสำหรับแปลงลำดับเป็นเลขที่บิล #M0001
+const getBillNo = (index, totalRecords) => {
+  const num = totalRecords - index; // รันจากใหม่ไปเก่า
+  return `#M${String(num).padStart(4, '0')}`;
+};
+// --- กลุ่มที่ 2: State สำหรับควบคุมหน้าจอ (วางตรงนี้ครับ) ---
+  const [tab, setTab] = useState("form");      // ควบคุมว่าอยู่หน้าไหน (บันทึก/ฐานข้อมูล/สรุป)
+  const [editRec, setEditRec] = useState(null); // เก็บข้อมูลลูกค้าที่เรากำลังกด "แก้ไข"
+  const [billRec, setBillRec] = useState(null); // เก็บข้อมูลลูกค้าที่เรากำลังกด "ดูใบเสร็จ"
 
-  const total = records.reduce((a,r) => a+(+r.price||0), 0);
+// --- ฟังก์ชันดึงข้อมูลจาก Cloud ---
+const loadAllData = useCallback(async () => {
+  // 1. ดึงข้อมูลลูกค้า
+  const { data: resRecords, error: err1 } = await supabase
+    .from('customer_records')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-  const syncSheet = async (data) => {
-    const URL = "https://script.google.com/macros/s/AKfycbyDqh1VE1be7-iVyvQ7r_cxsrrULyV4FHOFUZEiQKMyXdpFai3i6kvyvgn6ZgG0Ya0z/exec";
+  if (resRecords) {
+    setRecords(resRecords.map(r => ({
+      id: r.id, day: r.day, month: r.month, year: r.year,
+      name: r.name, phone: r.phone, lineId: r.line_id,
+      leftSphere: r.left_sphere, leftCylinder: r.left_cylinder, leftAxis: r.left_axis,
+      rightSphere: r.right_sphere, rightCylinder: r.right_cylinder, rightAxis: r.right_axis,
+      lensType: r.lens_type, frame: r.frame, price: r.price
+    })));
+  }
+
+  // 2. ดึงข้อมูลยอดขายตามปีที่เลือก
+  const { data: resSales, error: err2 } = await supabase
+    .from('sales_data')
+    .select('*')
+    .eq('year', parseInt(selYear));
+
+  if (resSales) {
+    setMonthlyData(THAI_MONTHS.map(m => {
+      const match = resSales.find(s => s.month_name === m);
+      return { month: m, revenue: match ? match.amount : 0 };
+    }));
+  }
+}, [selYear]);
+
+// โหลดข้อมูลครั้งแรกเมื่อเปิดหน้าเว็บ หรือเมื่อเปลี่ยนปี
+useEffect(() => {
+  loadAllData();
+}, [loadAllData]);
+
+const handleSave = async (form) => { // เพิ่ม async
     try {
-      await fetch(URL, {
-        method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          date:`${data.day}/${data.month}/${data.year}`, name:data.name,
-          contact:data.phone+(data.lineId?` (Line: ${data.lineId})`:""),
-          eyeR:`SPH:${data.rightSphere} CYL:${data.rightCylinder} AX:${data.rightAxis}`,
-          eyeL:`SPH:${data.leftSphere} CYL:${data.leftCylinder} AX:${data.leftAxis}`,
-          lens:data.lensType, frame:data.frame, price:data.price,
-        }),
-      });
-    } catch(e) { console.error("Sheets sync:", e); }
-  };
+      // เตรียมข้อมูลที่จะส่ง (Map ชื่อตัวแปรให้ตรงกับ Database)
+      const payload = {
+        day: form.day, month: form.month, year: form.year,
+        name: form.name, phone: form.phone, line_id: form.lineId,
+        left_sphere: form.leftSphere, left_cylinder: form.leftCylinder, left_axis: form.leftAxis,
+        right_sphere: form.rightSphere, right_cylinder: form.rightCylinder, right_axis: form.rightAxis,
+        lens_type: form.lensType, frame: form.frame, price: form.price
+      };
 
-  const handleSave = (form) => {
-    if (editRec) {
-      setRecords(rs => rs.map(r => r.id===editRec.id ? { ...form, id:r.id } : r));
+      // ถ้าเป็นการแก้ไข ให้แนบ ID เดิมไปด้วย
+      if (editRec) payload.id = editRec.id;
+
+      // ส่งขึ้น Cloud
+      const { error } = await supabase.from('customer_records').upsert(payload);
+      
+      if (error) throw error;
+
+      alert("บันทึกสำเร็จ!");
       setEditRec(null);
-    } else {
-      const rec = { ...form, id:++nid.current };
-      setRecords(rs => [rec, ...rs]);
-      syncSheet(rec);
+      loadAllData(); // เรียกดึงข้อมูลใหม่จาก Cloud มาแสดงผล
+      setTab("log");
+    } catch (err) {
+      alert("เกิดข้อผิดพลาด: " + err.message);
     }
-    setTab("log");
   };
 
-  const handleEdit   = (r) => { setEditRec(r); setTab("form"); window.scrollTo({ top:0, behavior:"smooth" }); };
-  const handleDelete = (id) => { if (confirm("ต้องการลบข้อมูลนี้?")) setRecords(rs => rs.filter(r => r.id!==id)); };
+  // 2. ฟังก์ชัน handleEdit (ของเดิมที่มีอยู่แล้ว)
+  const handleEdit = (r) => { 
+    setEditRec(r); 
+    setTab("form"); 
+    window.scrollTo({ top:0, behavior:"smooth" }); 
+  };
 
+  // 3. วาง handleDelete (อันใหม่) ไว้ตรงนี้ครับ !!!
+  const handleDelete = async (id) => {
+    if (confirm("ต้องการลบข้อมูลนี้ออกจาก Cloud?")) {
+      const { error } = await supabase.from('customer_records').delete().eq('id', id);
+      if (!error) {
+        loadAllData(); // เมื่อลบเสร็จ สั่งดึงข้อมูลใหม่จาก Cloud ทันที
+      } else {
+        alert("ลบไม่สำเร็จ: " + error.message);
+      }
+    }
+  };
+
+const total = records.reduce((sum, r) => sum + (Number(r.price) || 0), 0);
   return (
     <div className="app">
       <style>{CSS}</style>
 
-      <header className="hdr">
-        <div className="hdr-inner">
-          <div className="hdr-brand">
-            <div className="hdr-icon">👓</div>
-            <div>
-              <div className="hdr-title shimmer-text">MASTER OPTIC</div>
-              <div className="hdr-sub">MANAGEMENT SYSTEM</div>
-            </div>
-          </div>
-          <div className="hdr-stats">
-            <div className="hdr-stat">
-              <div className="hdr-stat-lbl">ลูกค้าทั้งหมด</div>
-              <div className="hdr-stat-val">{records.length}</div>
-            </div>
-            <div className="hdr-stat">
-              <div className="hdr-stat-lbl">ยอดรวม</div>
-              <div className="hdr-stat-val" style={{ color:"#4ade80", fontSize:16 }}>฿{total.toLocaleString("th-TH")}</div>
-            </div>
-          </div>
-        </div>
-      </header>
+<header className="hdr">
+<div className="hdr-inner">
+  {/* 1. ชื่อร้าน (อยู่ซ้าย) */}
+  <div className="hdr-brand">
+    <div>
+      <div className="hdr-title shimmer-text">MASTER OPTIC</div>
+      <div className="hdr-sub">MANAGEMENT SYSTEM</div>
+    </div>
+  </div>
 
+  {/* 2. สถิติ (จะไปอยู่ขวา) */}
+  <div className="hdr-stats">
+    <div className="hdr-stat">
+      <div className="hdr-stat-lbl">ลูกค้าทั้งหมด</div>
+      <div className="hdr-stat-val">{records.length}</div>
+    </div>
+    <div className="hdr-stat">
+      <div className="hdr-stat-lbl">ยอดรวม</div>
+<div className="hdr-stat-val" style={{ color: "#4ade80", textShadow: "0 0 20px rgba(74, 222, 128, 0.4)" }}>
+  ฿{total.toLocaleString("th-TH")}
+</div>
+    </div>
+  </div>
+</div>
+</header>
       <main className="wrap">
         <div className="tabs">
           {[
@@ -992,8 +1382,14 @@ export default function App() {
         {tab==="log"       && <LogTab records={records} onEdit={handleEdit} onDelete={handleDelete} onViewBill={setBillRec}/>}
         {tab==="dashboard" && <DashboardTab records={records}/>}
       </main>
-
-      {billRec && <BillModal r={billRec} onClose={()=>setBillRec(null)}/>}
+        {/* แก้บรรทัดนี้ที่อยู่ล่างสุดของไฟล์ */}
+{billRec && (
+  <BillModal 
+    r={billRec} 
+    onClose={() => setBillRec(null)} 
+    records={records} 
+  />
+)}
     </div>
   );
 }
