@@ -1,4 +1,4 @@
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyDqh1VE1be7-iVyvQ7r_cxsrrULyV4FHOFUZEiQKMyXdpFai3i6kvyvgn6ZgG0Ya0z/exec";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/library/d/1YZ5A-9yfvyeoXOBj6dqSeiqBnjpMNVoOiGsUMYB9DBF_0Qm1KdNnD18e/1";
 import { useState, useMemo, useRef, useEffect } from "react";
 
 // ── html2canvas loader ───────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ const EMPTY = {
 const fmt    = v => v ? "฿" + Number(v).toLocaleString("th-TH") : "–";
 const fmtDate = r => r.day && r.month && r.year
   ? `${r.day} ${THAI_MONTHS_SHORT[+r.month - 1]} ${r.year}` : "–";
-  
+
   const saveToGoogleSheet = async (record) => {
   try {
     await fetch(GOOGLE_SHEET_URL, {
