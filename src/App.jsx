@@ -17,17 +17,8 @@ function useHtml2Canvas() {
 // ── Data ─────────────────────────────────────────────────────────────────────
 const initialData = [
   { id:1, day:"10", month:"2", year:"2568", name:"สมศักดิ์ ใจดี",   phone:"081-234-5678", lineId:"somsak.j",   leftSphere:"-2.00", leftCylinder:"-0.75", leftAxis:"180", rightSphere:"-1.75", rightCylinder:"-0.50", rightAxis:"175", lensType:"Seiko 1.67 Blue UV", frame:"TI-2024-001", price:"12500" },
-  { id:2, day:"14", month:"2", year:"2568", name:"วิไล รักสวย",     phone:"089-876-5432", lineId:"wilai_r",    leftSphere:"-3.50", leftCylinder:"0.00",  leftAxis:"0",   rightSphere:"-3.25", rightCylinder:"-0.25", rightAxis:"90",  lensType:"Nikon 1.60 HCC",   frame:"AC-2024-088", price:"7800"  },
-  { id:3, day:"5",  month:"3", year:"2568", name:"ประสิทธิ์ มีสุข", phone:"085-111-2233", lineId:"prasit_m",   leftSphere:"-1.00", leftCylinder:"-0.50", leftAxis:"90",  rightSphere:"-1.25", rightCylinder:"0.00",  rightAxis:"0",   lensType:"Essilor 1.74",     frame:"TI-2024-055", price:"9500"  },
-  { id:4, day:"22", month:"3", year:"2568", name:"นภา สดใส",        phone:"091-444-5566", lineId:"napa_s",     leftSphere:"-4.00", leftCylinder:"-1.00", leftAxis:"180", rightSphere:"-3.75", rightCylinder:"-0.75", rightAxis:"175", lensType:"Seiko 1.67 Blue UV",frame:"AC-2024-102", price:"15000" },
-  { id:5, day:"8",  month:"4", year:"2568", name:"สุรชัย ดีงาม",    phone:"086-777-8899", lineId:"surachai_d", leftSphere:"-2.50", leftCylinder:"-0.25", leftAxis:"90",  rightSphere:"-2.25", rightCylinder:"-0.50", rightAxis:"85",  lensType:"Hoya 1.60 UV400",  frame:"TI-2024-077", price:"11000" },
-  { id:6, day:"25", month:"4", year:"2568", name:"มาลี ใจงาม",      phone:"083-222-3344", lineId:"malee_j",    leftSphere:"-1.75", leftCylinder:"0.00",  leftAxis:"0",   rightSphere:"-2.00", rightCylinder:"-0.25", rightAxis:"90",  lensType:"Nikon 1.60 HCC",   frame:"AC-2024-120", price:"8900"  },
-  { id:7, day:"12", month:"5", year:"2568", name:"อนุชา พรมมา",     phone:"087-555-6677", lineId:"anucha_p",   leftSphere:"-3.00", leftCylinder:"-0.75", leftAxis:"180", rightSphere:"-3.25", rightCylinder:"-1.00", rightAxis:"170", lensType:"Essilor 1.74",     frame:"TI-2024-090", price:"18500" },
-  { id:8, day:"28", month:"5", year:"2568", name:"ลัดดา สุขใจ",     phone:"092-888-9900", lineId:"ladda_s",    leftSphere:"-0.75", leftCylinder:"-0.25", leftAxis:"90",  rightSphere:"-1.00", rightCylinder:"0.00",  rightAxis:"0",   lensType:"Hoya 1.60 UV400",  frame:"AC-2024-135", price:"7200"  },
-  { id:9, day:"10", month:"6", year:"2568", name:"วีระ กล้าหาญ",    phone:"084-333-4455", lineId:"weera_k",    leftSphere:"-2.25", leftCylinder:"-0.50", leftAxis:"180", rightSphere:"-2.00", rightCylinder:"-0.75", rightAxis:"175", lensType:"Seiko 1.67 Blue UV",frame:"TI-2024-111", price:"13500" },
-  { id:10,day:"29", month:"6", year:"2568", name:"สมหญิง ดวงดี",    phone:"090-666-7788", lineId:"somying_d",  leftSphere:"-5.00", leftCylinder:"-1.25", leftAxis:"90",  rightSphere:"-4.75", rightCylinder:"-1.00", rightAxis:"85",  lensType:"Essilor 1.74",     frame:"AC-2024-150", price:"22000" },
+  { id:2, day:"5",  month:"3", year:"2568", name:"นางสาวสมหญิง แสนดี", phone:"089-876-5432", lineId:"somying.s", leftSphere:"-1.25", leftCylinder:"-0.50", leftAxis:"90",  rightSphere:"-1.00", rightCylinder:"-0.25", rightAxis:"85",  lensType:"Hoya 1.74 Green UV", frame:"TI-2024-002", price:"15800" },
 ];
-
 const THAI_MONTHS       = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 const THAI_MONTHS_SHORT = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
 
