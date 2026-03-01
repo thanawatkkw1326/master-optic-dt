@@ -1,3 +1,4 @@
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyDqh1VE1be7-iVyvQ7r_cxsrrULyV4FHOFUZEiQKMyXdpFai3i6kvyvgn6ZgG0Ya0z/exec";
 import { useState, useMemo, useRef, useEffect } from "react";
 
 // ── html2canvas loader ───────────────────────────────────────────────────────
@@ -52,6 +53,23 @@ const EMPTY = {
 const fmt    = v => v ? "฿" + Number(v).toLocaleString("th-TH") : "–";
 const fmtDate = r => r.day && r.month && r.year
   ? `${r.day} ${THAI_MONTHS_SHORT[+r.month - 1]} ${r.year}` : "–";
+  
+  const saveToGoogleSheet = async (record) => {
+  try {
+    await fetch(GOOGLE_SHEET_URL, {
+      method: "POST",
+      mode: "no-cors", // เพื่อป้องกันปัญหาความปลอดภัยของเบราว์เซอร์
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(record)
+    });
+    alert("ซิงค์ข้อมูลลง Google Sheets สำเร็จ!");
+  } catch (err) {
+    console.error("ซิงค์ไม่สำเร็จ:", err);
+  }
+};
+
+// ตอนที่พี่บันทึกลงในเครื่องเสร็จ ให้เรียกใช้แบบนี้:
+// saveToGoogleSheet(ข้อมูลที่คีย์ใหม่);
 
 // ── CSS ──────────────────────────────────────────────────────────────────────
 const css = `
